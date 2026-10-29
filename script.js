@@ -16,49 +16,39 @@ function isInMinsk([lat, lon]) {
   return haversine([lat, lon], MINSK_CENTER) <= MINSK_RADIUS_KM;
 }
 
-// Разбиение маршрута на сегменты с зонами
+// Возвращает сегменты с зоной начала и конца
 function splitRouteByRegion(points) {
   const segments = [];
   for (let i = 1; i < points.length; i++) {
     const a = points[i-1];
     const b = points[i];
     const km = haversine(a, b);
-    const inA = isInMinsk(a);
-    const inB = isInMinsk(b);
-
-    let zone;
-    if (inA && inB) {
-      zone = 'Минск';
-    } else if (!inA && !inB) {
-      zone = 'Минская обл.';
-    } else {
-      const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
-      zone = isInMinsk(mid) ? 'Минск' : 'Минская обл.';
-    }
-    segments.push({ zone, km });
+    const from = isInMinsk(a) ? 'Минск' : 'Минская обл.';
+    const to = isInMinsk(b) ? 'Минск' : 'Минская обл.';
+    segments.push({ from, to, km });
   }
   return segments;
 }
 
-// Группировка подряд идущих сегментов одной зоны
+// Группировка подряд идущих сегментов с одинаковой парой (from, to)
 function groupSegments(segments) {
   const groups = [];
   for (const seg of segments) {
     const last = groups[groups.length - 1];
-    if (last && last.zone === seg.zone) {
+    if (last && last.from === seg.from && last.to === seg.to) {
       last.km += seg.km;
     } else {
-      groups.push({ zone: seg.zone, km: seg.km });
+      groups.push({ from: seg.from, to: seg.to, km: seg.km });
     }
   }
   return groups;
 }
 
+// Отчёт: зоны и километры через табуляцию
 function buildReport(points) {
-  const segments = splitRouteByRegion(points);
-  const groups = groupSegments(segments);
+  const groups = groupSegments(splitRouteByRegion(points));
   if (groups.length === 0) return 'Нет данных для отчёта.';
-  return groups.map(g => `${g.zone} ${g.zone} ${g.km.toFixed(1)}км`).join('\n');
+  return groups.map(g => `${g.from}\t${g.to}\t${g.km.toFixed(1)}`).join('\n');
 }
 
 function parseCoords(text) {
@@ -101,6 +91,7 @@ function calculate() {
     const points = parseCoords(document.getElementById('input').value);
     if (points.length < 2) throw new Error('Нужно минимум 2 точки');
     const report = buildReport(points);
+    // экранируем, но табы сохраняем — они задают выравнивание
     result.innerHTML = `<pre class="report">${escapeHtml(report)}</pre>`;
   } catch (e) {
     result.innerHTML = '<div class="placeholder">Здесь появится отчёт…</div>';
@@ -109,12 +100,15 @@ function calculate() {
 }
 
 function loadExample() {
+  // Старт в Минске → выезд в область → возврат в Минск
   document.getElementById('input').value =
 `53.9006,27.5590
-53.9500,27.6000
+53.9100,27.5700
+53.9300,27.6000
 54.1000,27.8000
 54.2000,28.0000
-53.9500,27.6500
+54.3000,28.1000
+53.9300,27.6500
 53.9006,27.5590`;
   hideError();
 }
