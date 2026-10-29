@@ -32,40 +32,56 @@ function buildReport(points) {
   const segments = splitRouteByRegion(points);
   if (segments.length === 0) return 'Нет данных для отчёта.';
 
-  const rows = [];
-  let mixedKm = 0;
-  let pendingTransition = null;
-
+  const blocks = [];
   for (const seg of segments) {
-    if (seg.mixed) {
-      mixedKm += seg.km;
-      pendingTransition = { from: seg.from, to: seg.to };
+    const cat = seg.mixed ? 'transition' : (seg.from === 'Минск' ? 'city' : 'region');
+    const last = blocks[blocks.length - 1];
+    if (last && last.cat === cat) {
+      last.km += seg.km;
+      if (cat === 'transition' && !last.dir) last.dir = { from: seg.from, to: seg.to };
+    } else {
+      blocks.push({
+        cat, km: seg.km,
+        dir: cat === 'transition' ? { from: seg.from, to: seg.to } : null
+      });
+    }
+  }
+
+  let mixedKm = 0;
+  for (const b of blocks) if (b.cat === 'transition') mixedKm += b.km;
+
+  const rows = [];
+  let i = 0;
+  while (i < blocks.length) {
+    const b = blocks[i];
+    if (b.cat === 'transition') {
+      const next = blocks[i+1];
+      if (next && next.cat === 'region') {
+        rows.push({ from: 'Минск', to: 'Минская обл.', km: next.km });
+        i += 2;
+        continue;
+      }
+      if (next && next.cat === 'city') {
+        rows.push({ from: 'Минская обл.', to: 'Минск', km: next.km + mixedKm });
+        mixedKm = 0;
+        i += 2;
+        continue;
+      }
+      rows.push({ from: b.dir.from, to: b.dir.to, km: 0 });
+      i += 1;
       continue;
     }
-    if (pendingTransition) {
-      rows.push({ from: pendingTransition.from, to: pendingTransition.to, km: null });
-      pendingTransition = null;
-    }
-    const last = rows[rows.length - 1];
-    if (last && last.from === seg.from && last.to === seg.to) {
-      last.km = (last.km || 0) + seg.km;
+    if (b.cat === 'city') {
+      rows.push({ from: 'Минск', to: 'Минск', km: b.km + mixedKm });
+      mixedKm = 0;
     } else {
-      rows.push({ from: seg.from, to: seg.to, km: seg.km });
+      rows.push({ from: 'Минская обл.', to: 'Минская обл.', km: b.km });
     }
-  }
-
-  if (pendingTransition) {
-    rows.push({ from: pendingTransition.from, to: pendingTransition.to, km: 0 });
-  }
-
-  if (mixedKm > 0) {
-    const cityRow = rows.find(r => r.from === 'Минск' && r.to === 'Минск');
-    if (cityRow) cityRow.km = (cityRow.km || 0) + mixedKm;
-    else rows.unshift({ from: 'Минск', to: 'Минск', km: mixedKm });
+    i += 1;
   }
 
   return rows
-    .map(r => `${r.from}\t${r.to}\t${(r.km || 0).toFixed(1)}`)
+    .map(r => `${r.from}\t${r.to}\t${r.km.toFixed(1)}`)
     .join('\n');
 }
 
@@ -118,7 +134,7 @@ function calculate() {
 
 function loadExample() {
   document.getElementById('input').value =
-`53.9006,27.5591
+`53.9006,27.5592
 53.9100,27.5700
 53.9300,27.6000
 54.1000,27.8000
