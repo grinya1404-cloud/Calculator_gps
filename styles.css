@@ -21,13 +21,6 @@ body {
   justify-content: center;
   padding: 24px;
 }
-.report {
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 1rem;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  color: #bae6fd;
-}
 .app {
   width: 100%;
   max-width: 1100px;
@@ -56,10 +49,10 @@ header p { color: var(--muted); margin-top: 8px; font-size: 0.95rem; }
 
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
-@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
 
 .panel { display: flex; flex-direction: column; gap: 10px; }
 .panel label {
@@ -106,21 +99,14 @@ textarea:focus {
   gap: 16px;
 }
 .result-box .placeholder { color: var(--muted); font-style: italic; }
-.route-line {
-  font-size: 1.3rem;
-  font-weight: 700;
-  text-align: center;
-  line-height: 1.5;
+.report {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 1rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  color: #bae6fd;
+  margin: 0;
 }
-.route-line .start { color: var(--accent); }
-.route-line .finish { color: var(--accent2); }
-.route-line .arrow { color: var(--muted); margin: 0 8px; }
-.distance-line {
-  font-size: 1.1rem;
-  text-align: center;
-  color: var(--text);
-}
-.distance-line .num { color: var(--accent); font-weight: 700; font-size: 1.4rem; }
 
 .actions {
   margin-top: 24px;
