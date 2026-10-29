@@ -2,11 +2,6 @@
 const MINSK_CENTER = [53.9006, 27.5590];
 const MINSK_RADIUS_KM = 15;
 
-function isInMinsk([lat, lon]) {
-  return haversine([lat, lon], MINSK_CENTER) <= MINSK_RADIUS_KM;
-}
-
-// ─── Геометрия ───
 function haversine([lat1, lon1], [lat2, lon2]) {
   const R = 6371.0;
   const toRad = d => d * Math.PI / 180;
@@ -17,9 +12,11 @@ function haversine([lat1, lon1], [lat2, lon2]) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// ─── Разбиение маршрута на участки по принадлежности ───
-// Возвращает массив { from, to, km }
-// где from/to — 'Минск' или 'Минская обл.'
+function isInMinsk([lat, lon]) {
+  return haversine([lat, lon], MINSK_CENTER) <= MINSK_RADIUS_KM;
+}
+
+// Разбиение маршрута на сегменты с зонами
 function splitRouteByRegion(points) {
   const segments = [];
   for (let i = 1; i < points.length; i++) {
@@ -29,49 +26,41 @@ function splitRouteByRegion(points) {
     const inA = isInMinsk(a);
     const inB = isInMinsk(b);
 
-    // Определяем категорию сегмента.
-    // Если обе точки в одной зоне — сегмент целиком в этой зоне.
-    // Если точки в разных зонах — считаем сегмент переходным
-    // и относим его к зоне, где находится его середина.
-    let zoneA, zoneB;
+    let zone;
     if (inA && inB) {
-      zoneA = zoneB = 'Минск';
+      zone = 'Минск';
     } else if (!inA && !inB) {
-      zoneA = zoneB = 'Минская обл.';
+      zone = 'Минская обл.';
     } else {
-      // переход: относим к зоне середины сегмента
       const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
-      const midZone = isInMinsk(mid) ? 'Минск' : 'Минская обл.';
-      zoneA = zoneB = midZone;
+      zone = isInMinsk(mid) ? 'Минск' : 'Минская обл.';
     }
-    segments.push({ from: zoneA, to: zoneB, km });
+    segments.push({ zone, km });
   }
   return segments;
 }
 
-// ─── Группировка подряд идущих сегментов одной категории ───
+// Группировка подряд идущих сегментов одной зоны
 function groupSegments(segments) {
   const groups = [];
   for (const seg of segments) {
     const last = groups[groups.length - 1];
-    if (last && last.from === seg.from && last.to === seg.to) {
+    if (last && last.zone === seg.zone) {
       last.km += seg.km;
     } else {
-      groups.push({ from: seg.from, to: seg.to, km: seg.km });
+      groups.push({ zone: seg.zone, km: seg.km });
     }
   }
   return groups;
 }
 
-// ─── Формирование отчёта ───
 function buildReport(points) {
   const segments = splitRouteByRegion(points);
   const groups = groupSegments(segments);
   if (groups.length === 0) return 'Нет данных для отчёта.';
-  return groups.map(g => `${g.from} ${g.to} ${g.km.toFixed(1)}км`).join('\n');
+  return groups.map(g => `${g.zone} ${g.zone} ${g.km.toFixed(1)}км`).join('\n');
 }
 
-// ─── Парсинг координат (без изменений) ───
 function parseCoords(text) {
   const points = [];
   const lines = text.split(/\r?\n/);
@@ -92,13 +81,18 @@ function parseCoords(text) {
   return points;
 }
 
-// ─── UI ───
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function showError(msg) {
   const el = document.getElementById('error');
   el.textContent = msg;
   el.classList.add('show');
 }
-function hideError() { document.getElementById('error').classList.remove('show'); }
+function hideError() {
+  document.getElementById('error').classList.remove('show');
+}
 
 function calculate() {
   hideError();
@@ -114,12 +108,7 @@ function calculate() {
   }
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
 function loadExample() {
-  // Пример: старт в Минске, выезд за город, возврат в Минск
   document.getElementById('input').value =
 `53.9006,27.5590
 53.9500,27.6000
