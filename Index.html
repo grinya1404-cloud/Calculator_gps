@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route Calculator</title>
+<style>
+  :root {
+    --bg1: #0f172a;
+    --bg2: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --card: rgba(30, 41, 59, 0.75);
+    --border: rgba(148, 163, 184, 0.2);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at 20% 20%, #1e3a8a 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, #4c1d95 0%, transparent 40%),
+                linear-gradient(135deg, var(--bg1), var(--bg2));
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .app {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    animation: fadeIn 0.6s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p { color: var(--muted); margin-top: 8px; font-size: 0.95rem; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  textarea {
+    width: 100%;
+    min-height: 280px;
+    resize: vertical;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    color: var(--text);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  }
+  textarea[readonly] { color: #bae6fd; }
+
+  .actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  }
+  button:hover { transform: translateY(-2px); }
+  button:active { transform: translateY(0); }
+
+  .btn-primary {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #0f172a;
+    box-shadow: 0 10px 25px rgba(56, 189, 248, 0.35);
+  }
+  .btn-secondary {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: rgba(148, 163, 184, 0.2); }
+
+  .stats {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .stat .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat .value { font-size: 1.4rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
+
+  .error {
+    margin-top: 16px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    display: none;
+  }
+  .error.show { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Route Calculator</h1>
+    <p>Введите координаты — получите оптимальный порядок объезда и дистанцию</p>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <label for="input">Координаты (широта, долгота — по одной на строку)</label>
+      <textarea id="input" placeholder="55.7558,37.6173&#10;59.9343,30.3351&#10;56.8389,60.6057"></textarea>
+    </div>
+    <div class="panel">
+      <label for="output">Результат</label>
+      <textarea id="output" readonly placeholder="Здесь появится маршрут..."></textarea>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" onclick="calculate()">🚀 Построить маршрут</button>
+    <button class="btn-secondary" onclick="loadExample()">📋 Пример</button>
+    <button class="btn-secondary" onclick="clearAll()">🗑️ Очистить</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Точек</div><div class="value" id="statPoints">—</div></div>
+    <div class="stat"><div class="label">Дистанция</div><div class="value" id="statDist">—</div></div>
+    <div class="stat"><div class="label">Порядок</div><div class="value" id="statOrder">—</div></div>
+  </div>
+
+  <div class="error" id="error"></div>
+</div>
+
+<script>
+  // Формула гаверсинусов — расстояние между двумя точками на сфере (км)
+  function haversine([lat1, lon1], [lat2, lon2]) {
+    const R = 6371.0;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  // Жадный алгоритм ближайшего соседа
+  function nearestNeighbor(points, startIdx = 0) {
+    const remaining = points.slice();
+    const route = [remaining.splice(startIdx, 1)[0]];
+    while (remaining.length) {
+      const last = route[route.length - 1];
+      let bestIdx = 0, bestDist = Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const d = haversine(last, remaining[i]);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+      route.push(remaining.splice(bestIdx, 1)[0]);
+    }
+    return route;
+  }
+
+  function parseCoords(text) {
+    const points = [];
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const parts = line.split(',').map(s => s.trim());
+      if (parts.length !== 2) {
+        throw new Error(`Строка ${i+1}: ожидается "широта,долгота", получено "${line}"`);
+      }
+      const lat = parseFloat(parts[0]);
+      const lon = parseFloat(parts[1]);
+      if (isNaN(lat) || isNaN(lon)) {
+        throw new Error(`Строка ${i+1}: не число "${line}"`);
+      }
+      if (lat < -90 || lat > 90) throw new Error(`Строка ${i+1}: широта вне [-90, 90]`);
+      if (lon < -180 || lon > 180) throw new Error(`Строка ${i+1}: долгота вне [-180, 180]`);
+      points.push([lat, lon]);
+    }
+    return points;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideError() {
+    document.getElementById('error').classList.remove('show');
+  }
+
+  function calculate() {
+    hideError();
+    const input = document.getElementById('input').value;
+    const output = document.getElementById('output');
+    try {
+      const points = parseCoords(input);
+      if (points.length < 2) throw new Error('Нужно минимум 2 точки');
+
+      const route = nearestNeighbor(points, 0);
+      let total = 0;
+      const lines = route.map(([lat, lon], i) => {
+        if (i > 0) total += haversine(route[i-1], [lat, lon]);
+        return `${String(i+1).padStart(2, ' ')}. ${lat.toFixed(6)}, ${lon.toFixed(6)}` +
+               (i > 0 ? `  (+${haversine(route[i-1], [lat, lon]).toFixed(2)} км)` : '');
+      });
+      lines.push('');
+      lines.push(`═══ ИТОГО: ${total.toFixed(2)} км ═══`);
+      output.value = lines.join('\n');
+
+      document.getElementById('statPoints').textContent = points.length;
+      document.getElementById('statDist').textContent = total.toFixed(1) + ' км';
+      document.getElementById('statOrder').textContent = route.length;
+    } catch (e) {
+      output.value = '';
+      showError(e.message);
+      ['statPoints','statDist','statOrder'].forEach(id => document.getElementById(id).textContent = '—');
+    }
+  }
+
+  function loadExample() {
+    document.getElementById('input').value =
+`55.7558,37.6173
+59.9343,30.3351
+56.8389,60.6057
+54.9885,73.3242
+56.0153,92.8932`;
+    hideError();
+  }
+
+  function clearAll() {
+    document.getElementById('input').value = '';
+    document.getElementById('output').value = '';
+    ['statPoints','statDist','statOrder'].forEach(id => document.getElementById(id).textContent = '—');
+    hideError();
+  }
+
+  loadExample();
+</script>
+</body>
+</html>
