@@ -118,7 +118,7 @@ function calculate() {
 
 function loadExample() {
   document.getElementById('input').value =
-`53.9006,27.5590
+`53.9006,27.5591
 53.9100,27.5700
 53.9300,27.6000
 54.1000,27.8000
