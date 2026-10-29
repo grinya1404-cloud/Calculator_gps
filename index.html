@@ -43,10 +43,7 @@
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  header {
-    text-align: center;
-    margin-bottom: 28px;
-  }
+  header { text-align: center; margin-bottom: 28px; }
   h1 {
     font-size: 2rem;
     font-weight: 700;
@@ -59,16 +56,12 @@
 
   .grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
   }
-  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
 
-  .panel {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+  .panel { display: flex; flex-direction: column; gap: 10px; }
   .panel label {
     font-size: 0.85rem;
     text-transform: uppercase;
@@ -95,7 +88,40 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   }
-  textarea[readonly] { color: #bae6fd; }
+  textarea[readonly] {
+    color: #bae6fd;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.8;
+  }
+
+  .result-box {
+    min-height: 280px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+  }
+  .result-box .placeholder { color: var(--muted); font-style: italic; }
+  .route-line {
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .route-line .start { color: var(--accent); }
+  .route-line .finish { color: var(--accent2); }
+  .route-line .arrow { color: var(--muted); margin: 0 8px; }
+  .distance-line {
+    font-size: 1.1rem;
+    text-align: center;
+    color: var(--text);
+  }
+  .distance-line .num { color: var(--accent); font-weight: 700; font-size: 1.4rem; }
 
   .actions {
     margin-top: 24px;
@@ -115,7 +141,6 @@
   }
   button:hover { transform: translateY(-2px); }
   button:active { transform: translateY(0); }
-
   .btn-primary {
     background: linear-gradient(90deg, var(--accent), var(--accent2));
     color: #0f172a;
@@ -127,24 +152,6 @@
     border: 1px solid var(--border);
   }
   .btn-secondary:hover { background: rgba(148, 163, 184, 0.2); }
-
-  .stats {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .stat {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 20px;
-    text-align: center;
-    min-width: 140px;
-  }
-  .stat .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  .stat .value { font-size: 1.4rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
 
   .error {
     margin-top: 16px;
@@ -163,17 +170,23 @@
 <div class="app">
   <header>
     <h1>Route Calculator</h1>
-    <p>Введите координаты — получите оптимальный порядок объезда и дистанцию</p>
+    <p>Введите координаты — получите старт, финиш и пройденное расстояние</p>
   </header>
 
   <div class="grid">
     <div class="panel">
-      <label for="input">Координаты (широта, долгота — по одной на строку)</label>
+      <label for="input">Координаты<br><span style="text-transform:none;font-weight:400;font-size:0.8rem;">широта, долгота — по одной на строку</span></label>
       <textarea id="input" placeholder="55.7558,37.6173&#10;59.9343,30.3351&#10;56.8389,60.6057"></textarea>
     </div>
     <div class="panel">
-      <label for="output">Результат</label>
-      <textarea id="output" readonly placeholder="Здесь появится маршрут..."></textarea>
+      <label for="names">Названия (опционально)<br><span style="text-transform:none;font-weight:400;font-size:0.8rem;">по одной на строку, в том же порядке</span></label>
+      <textarea id="names" placeholder="Москва&#10;Санкт-Петербург&#10;Екатеринбург"></textarea>
+    </div>
+    <div class="panel">
+      <label>Результат</label>
+      <div class="result-box" id="result">
+        <div class="placeholder">Здесь появится маршрут…</div>
+      </div>
     </div>
   </div>
 
@@ -183,17 +196,10 @@
     <button class="btn-secondary" onclick="clearAll()">🗑️ Очистить</button>
   </div>
 
-  <div class="stats">
-    <div class="stat"><div class="label">Точек</div><div class="value" id="statPoints">—</div></div>
-    <div class="stat"><div class="label">Дистанция</div><div class="value" id="statDist">—</div></div>
-    <div class="stat"><div class="label">Порядок</div><div class="value" id="statOrder">—</div></div>
-  </div>
-
   <div class="error" id="error"></div>
 </div>
 
 <script>
-  // Формула гаверсинусов — расстояние между двумя точками на сфере (км)
   function haversine([lat1, lon1], [lat2, lon2]) {
     const R = 6371.0;
     const toRad = d => d * Math.PI / 180;
@@ -204,18 +210,17 @@
     return 2 * R * Math.asin(Math.sqrt(a));
   }
 
-  // Жадный алгоритм ближайшего соседа
   function nearestNeighbor(points, startIdx = 0) {
     const remaining = points.slice();
-    const route = [remaining.splice(startIdx, 1)[0]];
+    const route = [{ idx: startIdx, coord: remaining.splice(startIdx, 1)[0] }];
     while (remaining.length) {
-      const last = route[route.length - 1];
+      const last = route[route.length - 1].coord;
       let bestIdx = 0, bestDist = Infinity;
       for (let i = 0; i < remaining.length; i++) {
         const d = haversine(last, remaining[i]);
         if (d < bestDist) { bestDist = d; bestIdx = i; }
       }
-      route.push(remaining.splice(bestIdx, 1)[0]);
+      route.push({ coord: remaining.splice(bestIdx, 1)[0] });
     }
     return route;
   }
@@ -232,9 +237,7 @@
       }
       const lat = parseFloat(parts[0]);
       const lon = parseFloat(parts[1]);
-      if (isNaN(lat) || isNaN(lon)) {
-        throw new Error(`Строка ${i+1}: не число "${line}"`);
-      }
+      if (isNaN(lat) || isNaN(lon)) throw new Error(`Строка ${i+1}: не число "${line}"`);
       if (lat < -90 || lat > 90) throw new Error(`Строка ${i+1}: широта вне [-90, 90]`);
       if (lon < -180 || lon > 180) throw new Error(`Строка ${i+1}: долгота вне [-180, 180]`);
       points.push([lat, lon]);
@@ -242,41 +245,58 @@
     return points;
   }
 
+  function parseNames(text) {
+    return text.split(/\r?\n/).map(s => s.trim());
+  }
+
   function showError(msg) {
     const el = document.getElementById('error');
     el.textContent = msg;
     el.classList.add('show');
   }
-  function hideError() {
-    document.getElementById('error').classList.remove('show');
+  function hideError() { document.getElementById('error').classList.remove('show'); }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   function calculate() {
     hideError();
-    const input = document.getElementById('input').value;
-    const output = document.getElementById('output');
+    const result = document.getElementById('result');
     try {
-      const points = parseCoords(input);
+      const points = parseCoords(document.getElementById('input').value);
       if (points.length < 2) throw new Error('Нужно минимум 2 точки');
 
-      const route = nearestNeighbor(points, 0);
-      let total = 0;
-      const lines = route.map(([lat, lon], i) => {
-        if (i > 0) total += haversine(route[i-1], [lat, lon]);
-        return `${String(i+1).padStart(2, ' ')}. ${lat.toFixed(6)}, ${lon.toFixed(6)}` +
-               (i > 0 ? `  (+${haversine(route[i-1], [lat, lon]).toFixed(2)} км)` : '');
-      });
-      lines.push('');
-      lines.push(`═══ ИТОГО: ${total.toFixed(2)} км ═══`);
-      output.value = lines.join('\n');
+      const names = parseNames(document.getElementById('names').value);
 
-      document.getElementById('statPoints').textContent = points.length;
-      document.getElementById('statDist').textContent = total.toFixed(1) + ' км';
-      document.getElementById('statOrder').textContent = route.length;
+      // строим маршрут жадно, начиная с первой введённой точки
+      const route = nearestNeighbor(points, 0);
+
+      // суммарная дистанция
+      let total = 0;
+      for (let i = 1; i < route.length; i++) {
+        total += haversine(route[i-1].coord, route[i].coord);
+      }
+
+      // имя точки: из списка названий (по исходному индексу), иначе координата
+      const startPoint = route[0];
+      const finishPoint = route[route.length - 1];
+      const startLabel = names[startPoint.idx] || `${startPoint.coord[0].toFixed(4)}, ${startPoint.coord[1].toFixed(4)}`;
+      const finishLabel = names[finishPoint.idx] || `${finishPoint.coord[0].toFixed(4)}, ${finishPoint.coord[1].toFixed(4)}`;
+
+      result.innerHTML = `
+        <div class="route-line">
+          <span class="start">${escapeHtml(startLabel)}</span>
+          <span class="arrow">→</span>
+          <span class="finish">${escapeHtml(finishLabel)}</span>
+        </div>
+        <div class="distance-line">
+          Пройдено: <span class="num">${total.toFixed(2)}</span> км
+        </div>
+      `;
     } catch (e) {
-      output.value = '';
+      result.innerHTML = '<div class="placeholder">Здесь появится маршрут…</div>';
       showError(e.message);
-      ['statPoints','statDist','statOrder'].forEach(id => document.getElementById(id).textContent = '—');
     }
   }
 
@@ -287,17 +307,23 @@
 56.8389,60.6057
 54.9885,73.3242
 56.0153,92.8932`;
+    document.getElementById('names').value =
+`Москва
+Санкт-Петербург
+Екатеринбург
+Омск
+Красноярск`;
     hideError();
   }
 
   function clearAll() {
     document.getElementById('input').value = '';
-    document.getElementById('output').value = '';
-    ['statPoints','statDist','statOrder'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('names').value = '';
+    document.getElementById('result').innerHTML = '<div class="placeholder">Здесь появится маршрут…</div>';
     hideError();
   }
 
   loadExample();
 </script>
 </body>
-</html>
+  </html>
