@@ -1,3 +1,4 @@
+// ─── Условная граница Минска (потом заменим на полигон) ───
 const MINSK_CENTER = [53.9006, 27.5590];
 const MINSK_RADIUS_KM = 15;
 
@@ -15,6 +16,7 @@ function isInMinsk([lat, lon]) {
   return haversine([lat, lon], MINSK_CENTER) <= MINSK_RADIUS_KM;
 }
 
+// Разбиение на сегменты: у каждого from/to — зона начала и конца
 function splitRouteByRegion(points) {
   const segments = [];
   for (let i = 1; i < points.length; i++) {
@@ -28,6 +30,10 @@ function splitRouteByRegion(points) {
   return segments;
 }
 
+// Формирование отчёта:
+// - чистые сегменты группируются по (from, to)
+// - переходные сегменты: км уходят в "Минск-Минск",
+//   а на месте перехода создаётся строка с нулевым км
 function buildReport(points) {
   const segments = splitRouteByRegion(points);
   if (segments.length === 0) return 'Нет данных для отчёта.';
@@ -42,10 +48,12 @@ function buildReport(points) {
       pendingTransition = { from: seg.from, to: seg.to };
       continue;
     }
+
     if (pendingTransition) {
       rows.push({ from: pendingTransition.from, to: pendingTransition.to, km: null });
       pendingTransition = null;
     }
+
     const last = rows[rows.length - 1];
     if (last && last.from === seg.from && last.to === seg.to) {
       last.km = (last.km || 0) + seg.km;
