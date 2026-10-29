@@ -16,7 +16,7 @@ function isInMinsk([lat, lon]) {
   return haversine([lat, lon], MINSK_CENTER) <= MINSK_RADIUS_KM;
 }
 
-// Возвращает сегменты с зоной начала и конца
+// Разбиение на сегменты: у каждого from/to — зона начала и конца
 function splitRouteByRegion(points) {
   const segments = [];
   for (let i = 1; i < points.length; i++) {
@@ -25,15 +25,31 @@ function splitRouteByRegion(points) {
     const km = haversine(a, b);
     const from = isInMinsk(a) ? 'Минск' : 'Минская обл.';
     const to = isInMinsk(b) ? 'Минск' : 'Минская обл.';
-    segments.push({ from, to, km });
+    segments.push({ from, to, km, mixed: from !== to });
   }
   return segments;
 }
 
-// Группировка подряд идущих сегментов с одинаковой парой (from, to)
-function groupSegments(segments) {
+// Формирование отчёта:
+// - чистые сегменты группируются по (from, to)
+// - переходные сегменты: км уходят в "Минск-Минск",
+//   а на месте перехода создаётся строка с нулевым км
+function buildReport(points) {
+  const segments = splitRouteByRegion(points);
+  if (segments.length === 0) return 'Нет данных для отчёта.';
+
   const groups = [];
+  let mixedKm = 0;
+
   for (const seg of segments) {
+    if (seg.mixed) {
+      mixedKm += seg.km;
+      const last = groups[groups.length - 1];
+      if (!(last && last.from === seg.from && last.to === seg.to)) {
+        groups.push({ from: seg.from, to: seg.to, km: 0 });
+      }
+      continue;
+    }
     const last = groups[groups.length - 1];
     if (last && last.from === seg.from && last.to === seg.to) {
       last.km += seg.km;
@@ -41,14 +57,20 @@ function groupSegments(segments) {
       groups.push({ from: seg.from, to: seg.to, km: seg.km });
     }
   }
-  return groups;
-}
 
-// Отчёт: зоны и километры через табуляцию
-function buildReport(points) {
-  const groups = groupSegments(splitRouteByRegion(points));
-  if (groups.length === 0) return 'Нет данных для отчёта.';
-  return groups.map(g => `${g.from}\t${g.to}\t${g.km.toFixed(1)}`).join('\n');
+  // Переходные километры добавляем к городской группе
+  if (mixedKm > 0) {
+    const cityGroup = groups.find(g => g.from === 'Минск' && g.to === 'Минск');
+    if (cityGroup) {
+      cityGroup.km += mixedKm;
+    } else {
+      groups.unshift({ from: 'Минск', to: 'Минск', km: mixedKm });
+    }
+  }
+
+  return groups
+    .map(g => `${g.from}\t${g.to}\t${g.km.toFixed(1)}`)
+    .join('\n');
 }
 
 function parseCoords(text) {
@@ -91,7 +113,6 @@ function calculate() {
     const points = parseCoords(document.getElementById('input').value);
     if (points.length < 2) throw new Error('Нужно минимум 2 точки');
     const report = buildReport(points);
-    // экранируем, но табы сохраняем — они задают выравнивание
     result.innerHTML = `<pre class="report">${escapeHtml(report)}</pre>`;
   } catch (e) {
     result.innerHTML = '<div class="placeholder">Здесь появится отчёт…</div>';
@@ -100,7 +121,6 @@ function calculate() {
 }
 
 function loadExample() {
-  // Старт в Минске → выезд в область → возврат в Минск
   document.getElementById('input').value =
 `53.9006,27.5590
 53.9100,27.5700
