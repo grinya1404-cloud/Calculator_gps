@@ -10,28 +10,24 @@
 <div class="app">
   <header>
     <h1>Route Calculator</h1>
-    <p>Введите координаты — получите старт, финиш и пройденное расстояние</p>
+    <p>Введите координаты — получите отчёт по зонам (Минск / Минская обл.)</p>
   </header>
 
   <div class="grid">
     <div class="panel">
       <label for="input">Координаты<br><span class="hint">широта, долгота — по одной на строку</span></label>
-      <textarea id="input" placeholder="55.7558,37.6173&#10;59.9343,30.3351&#10;56.8389,60.6057"></textarea>
+      <textarea id="input" placeholder="53.9006,27.5590&#10;53.9500,27.6000&#10;54.1000,27.8000"></textarea>
     </div>
     <div class="panel">
-      <label for="names">Названия (опционально)<br><span class="hint">по одной на строку, в том же порядке</span></label>
-      <textarea id="names" placeholder="Москва&#10;Санкт-Петербург&#10;Екатеринбург"></textarea>
-    </div>
-    <div class="panel">
-      <label>Результат</label>
+      <label>Отчёт по зонам</label>
       <div class="result-box" id="result">
-        <div class="placeholder">Здесь появится маршрут…</div>
+        <div class="placeholder">Здесь появится отчёт…</div>
       </div>
     </div>
   </div>
 
   <div class="actions">
-    <button class="btn-primary" onclick="calculate()">🚀 Построить маршрут</button>
+    <button class="btn-primary" onclick="calculate()">🚀 Построить отчёт</button>
     <button class="btn-secondary" onclick="loadExample()">📋 Пример</button>
     <button class="btn-secondary" onclick="clearAll()">🗑️ Очистить</button>
   </div>
@@ -41,11 +37,4 @@
 
 <script src="script.js"></script>
 </body>
-</html>ь появится маршрут…</div>';
-    hideError();
-  }
-
-  loadExample();
-</script>
-</body>
-  </html>
+</html>
