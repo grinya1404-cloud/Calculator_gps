@@ -85,19 +85,22 @@ function buildReport(points) {
     .join('\n');
 }
 
+// Парсер: дата время \t скорость \t широта \t долгота
 function parseCoords(text) {
   const points = [];
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const parts = line.split(',').map(s => s.trim());
-    if (parts.length !== 2) {
-      throw new Error(`Строка ${i+1}: ожидается "широта,долгота", получено "${line}"`);
+    const parts = line.split('\t').map(s => s.trim());
+    if (parts.length < 4) {
+      throw new Error(`Строка ${i+1}: ожидается 4 колонки, получено ${parts.length}`);
     }
-    const lat = parseFloat(parts[0]);
-    const lon = parseFloat(parts[1]);
-    if (isNaN(lat) || isNaN(lon)) throw new Error(`Строка ${i+1}: не число "${line}"`);
+    const lat = parseFloat(parts[2]);
+    const lon = parseFloat(parts[3]);
+    if (isNaN(lat) || isNaN(lon)) {
+      throw new Error(`Строка ${i+1}: не число в координатах "${parts[2]}, ${parts[3]}"`);
+    }
     if (lat < -90 || lat > 90) throw new Error(`Строка ${i+1}: широта вне [-90, 90]`);
     if (lon < -180 || lon > 180) throw new Error(`Строка ${i+1}: долгота вне [-180, 180]`);
     points.push([lat, lon]);
@@ -132,17 +135,14 @@ function calculate() {
   }
 }
 
+// Пример загружается по кнопке
 function loadExample() {
-  document.getElementById('input').value =
-`53.9006,27.5592
-53.9100,27.5700
-53.9300,27.6000
-54.1000,27.8000
-54.2000,28.0000
-54.3000,28.1000
-53.9300,27.6500
-53.9006,27.5590`;
-  hideError();
+  if (typeof EXAMPLE_DATA !== 'undefined') {
+    document.getElementById('input').value = EXAMPLE_DATA;
+    hideError();
+  } else {
+    showError('Файл example.js не загружен');
+  }
 }
 
 function clearAll() {
@@ -151,4 +151,4 @@ function clearAll() {
   hideError();
 }
 
-loadExample();
+// При открытии ничего не загружаем — поле пустое
