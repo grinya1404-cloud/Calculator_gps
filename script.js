@@ -1,5 +1,29 @@
-const MINSK_CENTER = [53.9006, 27.5590];
-const MINSK_RADIUS_KM = 15;
+// ─── Приблизительный полигон МКАД (замените на точные координаты) ───
+// Формат: [lat, lon]. Грубый многоугольник вокруг Минска.
+const MINSK_POLYGON = [
+  [53.8200, 27.4500], // юго-запад
+  [53.8200, 27.6800], // юго-восток
+  [53.8600, 27.7500], // восток
+  [53.9200, 27.7800], // северо-восток
+  [53.9800, 27.7200], // север
+  [54.0000, 27.5800], // северо-запад
+  [53.9600, 27.4500], // запад
+  [53.9000, 27.4200], // юго-запад
+];
+
+// Алгоритм ray casting: точка внутри полигона?
+function isInMinsk([lat, lon]) {
+  let inside = false;
+  const x = lon, y = lat;
+  for (let i = 0, j = MINSK_POLYGON.length - 1; i < MINSK_POLYGON.length; j = i++) {
+    const xi = MINSK_POLYGON[i][1], yi = MINSK_POLYGON[i][0];
+    const xj = MINSK_POLYGON[j][1], yj = MINSK_POLYGON[j][0];
+    const intersect = ((yi > y) !== (yj > y)) &&
+                      (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
 
 function haversine([lat1, lon1], [lat2, lon2]) {
   const R = 6371.0;
@@ -9,10 +33,6 @@ function haversine([lat1, lon1], [lat2, lon2]) {
   const a = Math.sin(dLat/2)**2 +
             Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
   return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-function isInMinsk([lat, lon]) {
-  return haversine([lat, lon], MINSK_CENTER) <= MINSK_RADIUS_KM;
 }
 
 function splitRouteByRegion(points) {
@@ -85,7 +105,6 @@ function buildReport(points) {
     .join('\n');
 }
 
-// Парсер: дата время \t скорость \t широта \t долгота
 function parseCoords(text) {
   const points = [];
   const lines = text.split(/\r?\n/);
@@ -135,7 +154,6 @@ function calculate() {
   }
 }
 
-// Пример загружается по кнопке
 function loadExample() {
   if (typeof EXAMPLE_DATA !== 'undefined') {
     document.getElementById('input').value = EXAMPLE_DATA;
